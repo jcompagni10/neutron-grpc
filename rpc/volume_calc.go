@@ -20,7 +20,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/tx"
 )
 
-func RPCSearch() {
+func CalcAllVolume() {
 	// Replace with your gRPC server endpoint
 	grpcAddress := "grpc-kralum.neutron-1.neutron.org:80"
 
@@ -37,8 +37,8 @@ func RPCSearch() {
 	// Create a TxService client
 	client := tx.NewServiceClient(conn)
 
-	minBlock := 16950289
-	maxBlock := 17423622
+	minBlock := 17707754
+	maxBlock := 17753559
 	step := 5_000
 
 	var allTxResps []*sdk.TxResponse
@@ -68,7 +68,7 @@ func RPCSearch() {
 		fmt.Printf("got %d resps\n", len(allTxResps))
 
 		for _, resp := range allTxResps {
-			events := filterEvents(resp.Events, "message", "action", "MultihopSwap")
+			events := filterEvents(resp.Events, "message", "action", "PlaceLimitOrder")
 			fmt.Printf("got n event:%v\n", len(events))
 
 			loEvents = append(loEvents, events...)
@@ -185,6 +185,7 @@ type LOData struct {
 	OrderType     string
 	SwapAmountIn  int64
 	SwapAmountOut int64
+	Tick          int64
 }
 
 func eventToLOData(event abcitypes.Event) LOData {
@@ -202,6 +203,11 @@ func eventToLOData(event abcitypes.Event) LOData {
 	if err != nil {
 		swapAmountOut = 0
 	}
+	tick, err := strconv.ParseInt(getEventKey(event, "LimitTick"), 10, 0)
+	if err != nil {
+		tick = 0
+	}
+
 	return LOData{
 		Creator:       getEventKey(event, "Creator"),
 		TokenIn:       getEventKey(event, "TokenIn"),
@@ -210,6 +216,7 @@ func eventToLOData(event abcitypes.Event) LOData {
 		OrderType:     getEventKey(event, "OrderType"),
 		SwapAmountIn:  swapAmountIn,
 		SwapAmountOut: swapAmountOut,
+		Tick:          tick,
 	}
 
 }
@@ -236,7 +243,7 @@ func getTxEvents(client tx.ServiceClient, query string) ([]*tx.GetTxsEventRespon
 		// Make the tx_search gRPC call
 		req := &tx.GetTxsEventRequest{
 			Query:   query,
-			OrderBy: tx.OrderBy_ORDER_BY_DESC, // Optional: specify order
+			OrderBy: tx.OrderBy_ORDER_BY_ASC, // Optional: specify order
 			// Pagination options (optional)
 			Page:  uint64(page),
 			Limit: uint64(pageLimit),

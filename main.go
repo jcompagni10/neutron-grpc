@@ -147,6 +147,6 @@ func main() {
 	//	fmt.Printf("err: %v\n", err)
 
 	// }
-	rpc.RPCSearch()
+	rpc.CalcAllVolume()
 	// rpc.ExportLOEventData()
 }
